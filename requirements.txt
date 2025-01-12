@@ -1,0 +1,14 @@
+torch
+torchvision
+apache-airflow
+pyspark
+pillow
+opencv-python
+transformers
+detectron2
+geopy
+exifread
+matplotlib
+seaborn
+numpy
+pandas
