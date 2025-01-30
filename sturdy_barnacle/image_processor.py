@@ -1,4 +1,4 @@
-from typing import Any, Optional, Dict
+from typing import Optional
 from pydantic import Field
 from detectron2.data import MetadataCatalog
 from detectron2.config import get_cfg
@@ -12,7 +12,7 @@ import os
 import datetime
 from detectron2.utils.visualizer import Visualizer
 import matplotlib.pyplot as plt
-
+from .db_utils import DatabaseManager
 
 class ImageProcessor:
     """
@@ -22,8 +22,9 @@ class ImageProcessor:
     image_path: str = Field(..., description="Path to the image to process")
     _resources_initialized: bool = False
 
-    def __init__(self, image_path: str):
+    def __init__(self, image_path: str, db_path: str = "image_data.db"):
         self.image_path = image_path
+        self.db = DatabaseManager(db_path)
         self._initialize_shared_resources()
 
     @classmethod
@@ -33,10 +34,8 @@ class ImageProcessor:
             print("Initializing shared resources for the first time...")
             cls._initialize_blip()
             cls._initialize_detectron()
-
             cls._resources_initialized = True
             return
-
 
     @classmethod
     def _initialize_blip(cls):
@@ -106,7 +105,7 @@ class ImageProcessor:
             image = Image.open(self.image_path).convert("RGB")
             inputs = self._blip_processor(image, return_tensors="pt")
             outputs = self._blip_model.generate(**inputs)
-            return self._blip_processor.decode(outputs[0], skip_special_tokens=True)
+            return self._blip_processor.decode(outputs[0], skip_special_tokens=True).rstrip()
         except Exception as e:
             raise ValueError(f"Error generating description for {self.image_path}: {e}")
 
@@ -139,3 +138,12 @@ class ImageProcessor:
             return datetime.datetime.fromtimestamp(mod_time).strftime('%Y-%m-%d %H:%M:%S')
         except Exception as e:
             print(f"Error getting file datetime: {e}")
+
+
+    def process_and_store(self):
+        """Process the image and store the results in the database."""
+        description = self.describe_image()
+        detected_objects = self.detect_objects()
+        image_datetime = self.get_datetime()
+
+        self.db.save_results(self.image_path, description, detected_objects, image_datetime)
