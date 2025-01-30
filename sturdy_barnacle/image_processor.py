@@ -1,5 +1,5 @@
 from typing import Any, Optional, Dict
-from pydantic import BaseModel, Field
+from pydantic import Field
 from detectron2.data import MetadataCatalog
 from detectron2.config import get_cfg
 from detectron2.model_zoo import model_zoo
@@ -14,32 +14,29 @@ from detectron2.utils.visualizer import Visualizer
 import matplotlib.pyplot as plt
 
 
-class ImageProcessor(BaseModel):
+class ImageProcessor:
     """
     A utility class for processing a specific image, including object detection,
     caption generation, datetime extraction, and visualization.
     """
     image_path: str = Field(..., description="Path to the image to process")
-    
-    _blip_processor: Optional[Blip2Processor] = None
-    _blip_model: Optional[Blip2ForConditionalGeneration] = None
-    _detectron_cfg: Optional[Any] = None
-    _predictor: Optional[DefaultPredictor] = None
-    _class_names: Optional[list] = None
-    _metadata: Optional[Dict[str, str]] = None
+    _resources_initialized: bool = False
 
-    class Config:
-        arbitrary_types_allowed = True
-
-    def __init__(self, **data):
-        super().__init__(**data)
+    def __init__(self, image_path: str):
+        self.image_path = image_path
         self._initialize_shared_resources()
 
     @classmethod
     def _initialize_shared_resources(cls):
-        """Initialize shared models and configurations if not already initialized."""
-        cls._initialize_blip()
-        cls._initialize_detectron()
+        """Initialize shared resources (e.g., models) for the class."""
+        if not cls._resources_initialized:
+            print("Initializing shared resources for the first time...")
+            cls._initialize_blip()
+            cls._initialize_detectron()
+
+            cls._resources_initialized = True
+            return
+
 
     @classmethod
     def _initialize_blip(cls):
@@ -48,7 +45,6 @@ class ImageProcessor(BaseModel):
             cls._blip_processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
             cls._blip_model = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b")
             cls._blip_initialized = True
-            print("BLIP models initialized.")
         except Exception as e:
             raise RuntimeError(f"Error initializing BLIP models (BLIP-2): {e}")
 
@@ -63,11 +59,9 @@ class ImageProcessor(BaseModel):
             cfg.MODEL.DEVICE = "cpu"
             cls._detectron_cfg = cfg
             cls._predictor = DefaultPredictor(cfg)
-            print("Detectron2 model initialized.")
             cls._metadata = MetadataCatalog.get(cfg.DATASETS.TRAIN[0])
             cls._class_names = cls._metadata.get("thing_classes", [])
             cls._detectron_initialized = True
-            print("Detectron2 model initialized.")
         except Exception as e:
             raise RuntimeError(f"Error initializing Detectron2: {e}")
 
