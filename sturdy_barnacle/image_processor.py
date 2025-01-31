@@ -12,7 +12,7 @@ import os
 import datetime
 from detectron2.utils.visualizer import Visualizer
 import matplotlib.pyplot as plt
-from .db_utils import DatabaseManager
+from .db_utils import save_image_metadata
 
 class ImageProcessor:
     """
@@ -140,10 +140,12 @@ class ImageProcessor:
             print(f"Error getting file datetime: {e}")
 
 
-    def process_and_store(self):
-        """Process the image and store the results in the database."""
-        description = self.describe_image()
-        detected_objects = self.detect_objects()
-        image_datetime = self.get_datetime()
-
-        self.db.save_results(self.image_path, description, detected_objects, image_datetime)
+def process_and_store(self):
+    """Process image and store results in PostgreSQL."""
+    description = self.describe_image()
+    detected_objects = self.detect_objects()
+    image_datetime = self.get_datetime()
+    
+    detected_objects_str = ", ".join([f"{obj} ({count})" for obj, count in detected_objects.items()])
+    
+    save_image_metadata(self.image_path, description, detected_objects_str, image_datetime)
