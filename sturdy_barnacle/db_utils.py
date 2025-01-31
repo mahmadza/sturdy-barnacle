@@ -34,3 +34,33 @@ class ImageRecord(Base):
 
 def initialize_db():
     Base.metadata.create_all(bind=engine)
+
+def update_exif_data(image_path):
+    """Extract EXIF data and update PostgreSQL for an existing image."""
+    session = SessionLocal()
+    
+    # Check if the image exists in the database
+    image_record = session.query(ImageRecord).filter_by(image_path=image_path).first()
+    if not image_record:
+        print(f"Image not found in DB: {image_path}")
+        session.close()
+        return
+
+    # Extract EXIF metadata
+    exif_data = extract_exif_data(image_path)
+
+    # Update only EXIF fields, keep existing descriptions/detections
+    image_record.camera_make = exif_data.get("camera_make")
+    image_record.camera_model = exif_data.get("camera_model")
+    image_record.lens_model = exif_data.get("lens_model")
+    image_record.exposure_time = exif_data.get("exposure_time")
+    image_record.f_number = exif_data.get("f_number")
+    image_record.iso = exif_data.get("iso")
+    image_record.focal_length = exif_data.get("focal_length")
+    image_record.gps_latitude = exif_data.get("gps_latitude")
+    image_record.gps_longitude = exif_data.get("gps_longitude")
+    image_record.gps_altitude = exif_data.get("gps_altitude")
+
+    session.commit()
+    session.close()
+    print(f"Updated EXIF for: {image_path}")
