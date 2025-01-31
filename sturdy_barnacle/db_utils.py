@@ -1,52 +1,36 @@
-import sqlite3
-from typing import Dict, Optional
+from sqlalchemy import create_engine, Column, Integer, String, Text, Float
+from sqlalchemy.orm import declarative_base, sessionmaker
+from PIL import Image, ExifTags
+import psycopg2
 
-class DatabaseManager:
-    """Handles SQLite database interactions for storing and retrieving image processing results."""
-    
-    def __init__(self, db_path: str = "image_data.db"):
-        self.db_path = db_path
-        self._initialize_db()
+# PostgreSQL Database Config (Modify as needed)
+DB_URL = "postgresql://user:pass@localhost:5432/images_db"
 
-    def _initialize_db(self):
-        """Initialize the database and create necessary tables if they don't exist."""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS images (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    image_path TEXT UNIQUE,
-                    description TEXT,
-                    detected_objects TEXT,
-                    datetime TEXT
-                )
-            """)
-            conn.commit()
+engine = create_engine(DB_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-    def save_results(self, image_path: str, description: str, detected_objects: Dict[str, int], datetime: Optional[str]):
-        """Insert or update image processing results."""
-        detected_objects_str = ", ".join([f"{obj} ({count})" for obj, count in detected_objects.items()])
-        
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO images (image_path, description, detected_objects, datetime)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(image_path) DO UPDATE SET
-                    description = excluded.description,
-                    detected_objects = excluded.detected_objects,
-                    datetime = excluded.datetime
-            """, (image_path, description, detected_objects_str, datetime))
-            conn.commit()
+Base = declarative_base()
 
-    def get_image_data(self, image_path: str):
-        """Retrieve image processing results."""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM images WHERE image_path = ?", (image_path,))
-            result = cursor.fetchone()
-            return result
-        
-    def is_image_processed(self, image_path: str) -> bool:
-        """Check if image processing results are already stored."""
-        return self.get_image_data(image_path) is not None
+class ImageRecord(Base):
+    __tablename__ = "images"
+
+    id = Column(Integer, primary_key=True, index=True)
+    image_path = Column(String, unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    detected_objects = Column(Text, nullable=True)
+    datetime = Column(String, nullable=True)
+
+    # EXIF Metadata Fields
+    camera_make = Column(String, nullable=True)
+    camera_model = Column(String, nullable=True)
+    lens_model = Column(String, nullable=True)
+    exposure_time = Column(String, nullable=True)
+    f_number = Column(Float, nullable=True)
+    iso = Column(Integer, nullable=True)
+    focal_length = Column(Float, nullable=True)
+    gps_latitude = Column(Float, nullable=True)
+    gps_longitude = Column(Float, nullable=True)
+    gps_altitude = Column(Float, nullable=True)
+
+def initialize_db():
+    Base.metadata.create_all(bind=engine)
