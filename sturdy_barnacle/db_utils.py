@@ -3,8 +3,17 @@ from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from pgvector.sqlalchemy import Vector
 from PIL import Image, ExifTags, TiffImagePlugin
 from typing import Optional, List, Dict, Any
+from urllib.parse import urlparse
+from pathlib import Path
+import json
 
-DB_URL = "postgresql://myuser:mypassword@localhost:5432/images_db"
+CONFIG_PATH = Path(__file__).parent.parent / "config.json"
+with open(CONFIG_PATH, "r") as f:
+    CONFIG = json.load(f)
+
+DB_URL = CONFIG["database"]["db_url"]
+TABLE_IMAGE_METADATA = CONFIG["tables"]["image_metadata"]
+
 
 engine = create_engine(DB_URL, pool_size=10, max_overflow=20)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -13,7 +22,7 @@ Base = declarative_base()
 
 class ImageMetadata(Base):
     """ORM Model for storing image metadata, EXIF data (JSON), and embeddings."""
-    __tablename__ = "image_metadata"
+    __tablename__ = TABLE_IMAGE_METADATA
 
     id = Column(Integer, primary_key=True, index=True)
     image_path = Column(String, unique=True, nullable=False)
@@ -25,10 +34,17 @@ class ImageMetadata(Base):
 
 class DatabaseManager:
 
-    def __init__(self, db_url: str = DB_URL):
-        self.engine = create_engine(db_url, pool_size=10, max_overflow=20)
+    def __init__(self):
+        """Initialize the DatabaseManager and extract database name."""
+        self.db_url = DB_URL
+        self.db_name = self.get_database_name()
+
+        self.engine = create_engine(self.db_url, pool_size=10, max_overflow=20)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
-        self._initialize_db()
+
+    def get_database_name(self) -> str:
+        parsed_url = urlparse(self.db_url)
+        return parsed_url.path.lstrip("/") 
 
     def _initialize_db(self) -> None:
         Base.metadata.create_all(bind=self.engine)
