@@ -6,6 +6,8 @@ from typing import Optional, List, Dict, Any
 from urllib.parse import urlparse
 from pathlib import Path
 import json
+from sklearn.cluster import KMeans
+import numpy as np
 
 CONFIG_PATH = Path(__file__).parent.parent / "config.json"
 with open(CONFIG_PATH, "r") as f:
@@ -163,5 +165,65 @@ class DatabaseManager:
         session = self._get_session()
         try:
             return session.query(ImageMetadata).filter_by(image_path=image_path).first()
+        finally:
+            session.close()
+
+
+    def create_album(self, album_name: str) -> int:
+        """Creates a new album and returns the album ID."""
+        session = self._get_session()
+        try:
+            result = session.execute(
+                text("INSERT INTO image_albums (album_name) VALUES (:name) RETURNING id"),
+                {"name": album_name}
+            )
+            session.commit()
+            return result.fetchone()[0]
+        finally:
+            session.close()
+
+
+    def add_image_to_album(self, album_id: int, image_path: str) -> None:
+        """Adds an image to a specified album."""
+        session = self._get_session()
+        try:
+            session.execute(
+                text("INSERT INTO image_album_mapping (album_id, image_path) VALUES (:album_id, :image_path) ON CONFLICT DO NOTHING"),
+                {"album_id": album_id, "image_path": image_path}
+            )
+            session.commit()
+        finally:
+            session.close()
+
+    def get_album_images(self, album_id: int) -> List[str]:
+        """Returns a list of image paths in a specified album."""
+        session = self._get_session()
+        try:
+            results = session.execute(
+                text("SELECT image_path FROM image_album_mapping WHERE album_id = :album_id"),
+                {"album_id": album_id}
+            )
+            return [row[0] for row in results]
+        finally:
+            session.close()
+    
+    def query_all_images(self) -> List[ImageMetadata]:
+        """Returns all images in the database."""
+        session = self._get_session()
+        try:
+            return session.query(ImageMetadata).all()
+        finally:
+            session.close()
+
+
+    def get_images_by_album(self, album_id: int) -> List[str]:
+        """Returns all images in a specified album."""
+        session = self._get_session()
+        try:
+            results = session.execute(
+                text("SELECT image_path FROM image_album_mapping WHERE album_id = :album_id"),
+                {"album_id": album_id}
+            )
+            return [row[0] for row in results]
         finally:
             session.close()
