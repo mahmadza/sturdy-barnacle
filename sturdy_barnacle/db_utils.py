@@ -37,7 +37,6 @@ class DatabaseManager:
         return self.SessionLocal()
 
     def is_image_processed(self, image_path: str) -> bool:
-        """Check if an image has already been processed and exists in the database."""
         session = self._get_session()
         try:
             return session.query(ImageMetadata).filter_by(image_path=image_path).first() is not None
@@ -46,7 +45,6 @@ class DatabaseManager:
 
     @staticmethod
     def _convert_exif_value(value: Any) -> Any:
-        """Convert EXIF values to JSON-serializable types."""
         if isinstance(value, TiffImagePlugin.IFDRational):
             return float(value)  # Convert to float
         elif isinstance(value, bytes):
@@ -58,7 +56,6 @@ class DatabaseManager:
         return value  # Return as-is if already serializable
 
     def extract_exif_data(self, image_path: str) -> Optional[Dict[str, Any]]:
-        """Extract EXIF metadata and ensure it is JSON serializable."""
         try:
             image = Image.open(image_path)
             exif_data = image._getexif()
@@ -78,7 +75,6 @@ class DatabaseManager:
         detected_objects: Optional[str] = None,
         embedding: Optional[List[float]] = None
     ) -> None:
-        """Save or update image metadata, including EXIF data and embeddings."""
         session = self._get_session()
         
         try:
@@ -138,5 +134,12 @@ class DatabaseManager:
                 LIMIT {top_n}
             """).fetchall()
             return [{"image_path": row[0], "similarity": row[1]} for row in results]
+        finally:
+            session.close()
+
+    def get_image_by_path(self, image_path: str) -> Optional[ImageMetadata]:
+        session = self._get_session()
+        try:
+            return session.query(ImageMetadata).filter_by(image_path=image_path).first()
         finally:
             session.close()
