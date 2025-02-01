@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, JSON
+from sqlalchemy import create_engine, Column, Integer, String, Text, JSON, text
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from pgvector.sqlalchemy import Vector
 from PIL import Image, ExifTags, TiffImagePlugin
@@ -91,6 +91,7 @@ class DatabaseManager:
         detected_objects: Optional[str] = None,
         embedding: Optional[List[float]] = None
     ) -> None:
+        
         session = self._get_session()
         
         try:
@@ -143,12 +144,17 @@ class DatabaseManager:
         """Find similar images using embedding similarity search (pgvector)."""
         session = self._get_session()
         try:
-            results = session.execute(f"""
-                SELECT image_path, 1 - (embedding <=> '{image_embedding}') AS similarity 
+            # Convert Python list to PostgreSQL-compatible vector format
+            embedding_str = f"'[{', '.join(map(str, image_embedding))}]'::vector"
+
+            query = text(f"""
+                SELECT image_path, 1 - (embedding <=> {embedding_str}) AS similarity 
                 FROM image_metadata 
                 ORDER BY similarity DESC 
-                LIMIT {top_n}
-            """).fetchall()
+                LIMIT :top_n
+            """)
+
+            results = session.execute(query, {"top_n": top_n}).fetchall()
             return [{"image_path": row[0], "similarity": row[1]} for row in results]
         finally:
             session.close()

@@ -28,11 +28,9 @@ class ImageProcessor:
         self.db: DatabaseManager = db
         
         if self.db.is_image_processed(self.image_path):
-            print(f"Skipping {self.image_path} (already processed)")
             self.skip_processing = True
         else:
             self.skip_processing = False
-            self._initialize_shared_resources()
 
 
     @classmethod
@@ -120,7 +118,8 @@ class ImageProcessor:
     def compute_embedding(self) -> List[float]:
 
         if not hasattr(self, "_clip_model"):
-            raise RuntimeError("CLIP model is not initialized.")
+            self._initialize_clip()
+#            raise RuntimeError("CLIP model is not initialized.")
 
         try:
             image: Image.Image = Image.open(self.image_path).convert("RGB")
@@ -135,7 +134,10 @@ class ImageProcessor:
     def process_and_store(self) -> None:
 
         if self.skip_processing:
+            print(f"Skipping {self.image_path} (already processed)")
             return        
+
+        self._initialize_shared_resources()
         
         description: str = self.describe_image()
         detected_objects: Counter[str] = self.detect_objects()
