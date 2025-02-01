@@ -11,6 +11,16 @@ import json
 from collections import Counter
 from typing import List
 
+import json
+from pathlib import Path
+
+CONFIG_PATH = Path(__file__).parent.parent / "config.json"
+with open(CONFIG_PATH, "r") as f:
+    CONFIG = json.load(f)
+
+MODEL_NAMES = CONFIG["models"]
+
+
 class ImageProcessor:
 
     def __init__(self, image_path: str, db: DatabaseManager) -> None:
@@ -40,8 +50,9 @@ class ImageProcessor:
     def _initialize_blip(cls) -> None:
 
         try:
-            cls._blip_processor: Blip2Processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
-            cls._blip_model: Blip2ForConditionalGeneration = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b")
+            model_name = MODEL_NAMES["blip2"]
+            cls._blip_processor = Blip2Processor.from_pretrained(model_name)
+            cls._blip_model = Blip2ForConditionalGeneration.from_pretrained(model_name)
         except Exception as e:
             raise RuntimeError(f"Error initializing BLIP-2 model: {e}")
 
@@ -50,12 +61,13 @@ class ImageProcessor:
     def _initialize_detectron(cls) -> None:
 
         try:
+            model_name = MODEL_NAMES["detectron2"]
             cfg = get_cfg()
-            cfg.merge_from_file(model_zoo.get_config_file("COCO-PanopticSegmentation/panoptic_fpn_R_50_3x.yaml"))
-            cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-PanopticSegmentation/panoptic_fpn_R_50_3x.yaml")
+            cfg.merge_from_file(model_zoo.get_config_file(model_name))
+            cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(model_name)
             cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
             cfg.MODEL.DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-            
+                
             cls._detectron_cfg = cfg
             cls._detectron_predictor: DefaultPredictor = DefaultPredictor(cfg)
             cls._metadata = MetadataCatalog.get(cfg.DATASETS.TRAIN[0])
@@ -68,8 +80,9 @@ class ImageProcessor:
     def _initialize_clip(cls) -> None:
 
         try:
-            cls._clip_model: CLIPModel = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-            cls._clip_processor: CLIPProcessor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+            model_name = MODEL_NAMES["clip"]
+            cls._clip_model = CLIPModel.from_pretrained(model_name)
+            cls._clip_processor = CLIPProcessor.from_pretrained(model_name)
         except Exception as e:
             raise RuntimeError(f"Error initializing CLIP model: {e}")
 

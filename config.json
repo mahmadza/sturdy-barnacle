@@ -4,5 +4,10 @@
   },
   "tables": {
     "image_metadata": "image_metadata"
+  },
+  "models": {
+    "blip2": "Salesforce/blip2-opt-2.7b",
+    "detectron2": "COCO-PanopticSegmentation/panoptic_fpn_R_50_3x.yaml",
+    "clip": "openai/clip-vit-base-patch32"
   }
 }
