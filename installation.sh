@@ -18,7 +18,7 @@ pip install torch torchvision torchaudio
 
 python -m ipykernel install --user --name=venv
 
-
+pip install ipywidgets widgetsnbextension pandas-profiling
 
 
 pip install "numpy<2" --force-reinstall

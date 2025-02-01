@@ -100,7 +100,7 @@ class DatabaseManager:
                 return
             
             exif_data = self.extract_exif_data(image_path)
-            datetime = exif_data.get("DateTimeOriginal", None)
+            datetime = exif_data.get("DateTimeOriginal", None) if exif_data else None
             existing = session.query(ImageMetadata).filter_by(image_path=image_path).first()
 
             if existing:
