@@ -1,9 +1,8 @@
 from sqlalchemy import create_engine, Column, Integer, String, Text, JSON
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from pgvector.sqlalchemy import Vector
-from PIL import Image, ExifTags
+from PIL import Image, ExifTags, TiffImagePlugin
 from typing import Optional, List, Dict, Any
-import json
 
 DB_URL = "postgresql://myuser:mypassword@localhost:5432/images_db"
 
@@ -45,17 +44,21 @@ class DatabaseManager:
         finally:
             session.close()
 
-    def _convert_exif_value(self, value: Any) -> Any:
-        if isinstance(value, bytes):
-            return value.decode(errors="ignore")  # Convert bytes to string
+    @staticmethod
+    def _convert_exif_value(value: Any) -> Any:
+        """Convert EXIF values to JSON-serializable types."""
+        if isinstance(value, TiffImagePlugin.IFDRational):
+            return float(value)  # Convert to float
+        elif isinstance(value, bytes):
+            return value.decode(errors="replace")  # Convert bytes to string
         elif isinstance(value, tuple):
-            return tuple(map(self._convert_exif_value, value))  # Recursively convert tuples
-        elif hasattr(value, "numerator") and hasattr(value, "denominator"):
-            return float(value.numerator) / float(value.denominator)  # Convert IFDRational to float
-        return value  # Return as is if already serializable
+            return tuple(DatabaseManager._convert_exif_value(v) for v in value)  # Convert tuple recursively
+        elif isinstance(value, dict):
+            return {k: DatabaseManager._convert_exif_value(v) for k, v in value.items()}  # Convert dict recursively
+        return value  # Return as-is if already serializable
 
     def extract_exif_data(self, image_path: str) -> Optional[Dict[str, Any]]:
-        """Extract EXIF metadata from an image and ensure it is JSON serializable."""
+        """Extract EXIF metadata and ensure it is JSON serializable."""
         try:
             image = Image.open(image_path)
             exif_data = image._getexif()

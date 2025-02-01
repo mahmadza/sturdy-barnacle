@@ -9,7 +9,7 @@ import cv2
 import torch
 import json
 from collections import Counter
-from typing import Dict, List, Optional
+from typing import List
 
 class ImageProcessor:
 
