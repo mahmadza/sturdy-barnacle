@@ -71,7 +71,6 @@ class ImageAlbumManager:
                 self.db.add_image_to_album(album_id, img.image_path)
                 image_counts[album_id] += 1  # Count images per album
 
-        # Prepare album list for Pandas
         for album_id, num_images in image_counts.items():
             album_data.append(
                 {
@@ -81,7 +80,6 @@ class ImageAlbumManager:
                 }
             )
 
-        # Convert to DataFrame for visualization
         df = pd.DataFrame(album_data).sort_values(
             by="num_images", ascending=False
         )

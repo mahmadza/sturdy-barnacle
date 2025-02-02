@@ -30,7 +30,7 @@ MODEL_NAMES = config["models"]
 class ImageProcessor:
     """Processes images using BLIP-2, Detectron2, and CLIP models."""
 
-    _resources_initialized = False  # Class-level flag
+    _resources_initialized = False
 
     def __init__(self, image_path: str, db: DatabaseManager) -> None:
         self.image_path: str = image_path
@@ -105,10 +105,12 @@ class ImageProcessor:
 
         image = cv2.imread(self.image_path)
         if image is None:
-            raise ValueError(f"⚠️ Could not read image at {self.image_path}")
+            raise ValueError(f"Could not read image at {self.image_path}")
 
         outputs = ImageProcessor._detectron_predictor(image)
-        instances = outputs["instances"].to("cpu")
+        instances = outputs["instances"].to(
+            config["image_processing"]["default_device"]
+        )
         pred_classes = instances.pred_classes.numpy()
         detected_items: List[str] = [
             ImageProcessor._class_names[c] for c in pred_classes
@@ -131,7 +133,7 @@ class ImageProcessor:
             )
         except Exception as e:
             raise ValueError(
-                f"⚠️ Error generating description for {self.image_path}: {e}"
+                f"Error generating description for {self.image_path}: {e}"
             )
 
     def compute_embedding(self) -> List[float]:
