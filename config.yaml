@@ -1,0 +1,23 @@
+# Configuration for the image processing and database
+database:
+  db_url: "postgresql://myuser:mypassword@localhost:5432/images_db"
+  db_name: "images_db"
+  table_names:
+    image_metadata: "image_metadata"
+    image_albums: "image_albums"
+    image_album_mapping: "image_album_mapping"
+
+models:
+  blip: "Salesforce/blip2-opt-2.7b"
+  detectron: "COCO-PanopticSegmentation/panoptic_fpn_R_50_3x.yaml"
+  clip: "openai/clip-vit-base-patch32"
+  tsne:
+    n_components: 2
+    perplexity: 30.0
+  hdbscan:
+    min_cluster_size: 10
+    min_samples: 2
+
+image_processing:
+  default_device: "cpu"  # Change to "cpu" if no GPU available
+  image_directory: "/Users/mamduhzabidi/Pictures/Photos Library.photoslibrary/originals/"
