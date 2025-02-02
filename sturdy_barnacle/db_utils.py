@@ -6,8 +6,6 @@ from typing import Optional, List, Dict, Any
 from urllib.parse import urlparse
 from pathlib import Path
 import json
-from sklearn.cluster import KMeans
-import numpy as np
 
 CONFIG_PATH = Path(__file__).parent.parent / "config.json"
 with open(CONFIG_PATH, "r") as f:
@@ -183,12 +181,16 @@ class DatabaseManager:
             session.close()
 
 
-    def add_image_to_album(self, album_id: int, image_path: str) -> None:
-        """Adds an image to a specified album."""
+    def add_image_to_album(self, album_id: int, image_path: str):
+        """Adds an image to a specified album, overwriting if necessary."""
         session = self._get_session()
         try:
             session.execute(
-                text("INSERT INTO image_album_mapping (album_id, image_path) VALUES (:album_id, :image_path) ON CONFLICT DO NOTHING"),
+                text("""
+                    INSERT INTO image_album_mapping (album_id, image_path)
+                    VALUES (:album_id, :image_path)
+                    ON CONFLICT (image_path) DO UPDATE SET album_id = EXCLUDED.album_id;
+                """),
                 {"album_id": album_id, "image_path": image_path}
             )
             session.commit()
