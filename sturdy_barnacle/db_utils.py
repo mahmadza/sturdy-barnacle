@@ -140,17 +140,17 @@ class DatabaseManager:
     def query_images_by_keyword(self, keyword: str) -> List[ImageMetadata]:
         session = self._get_session()
         try:
+            safe_keyword = re.sub(r"[^a-zA-Z0-9 ]", "", keyword)
+            search_pattern = f"%{safe_keyword}%"
             return (
                 session.query(ImageMetadata)
                 .filter(
-                    (ImageMetadata.description.ilike(f"%{keyword}%"))
-                    | (ImageMetadata.detected_objects.ilike(f"%{keyword}%"))
-                    | (
-                        ImageMetadata.exif_data.cast(Text).ilike(
-                            f"%{keyword}%"
-                        )
-                    )
+                    (ImageMetadata.description.ilike(text(":keyword")))
+                    | (ImageMetadata.detected_objects.ilike(text(":keyword")))
+                    | (ImageMetadata.exif_data.cast(Text).ilike(text(":keyword")))
                 )
+                .params(keyword=search_pattern)
+                .limit(50)  # Limit query results to prevent excessive data leaks
                 .all()
             )
         finally:
