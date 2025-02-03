@@ -56,7 +56,7 @@ python auto_album_manager.py
 
 
 ## Contributing
-Feel free to fork, open issues, or submit pull requests. Let's build the best AI-powered image manager together!
+Feel free to fork, open issues, or submit pull requests.
 
 ## License
 This project is licensed under the MIT License.
