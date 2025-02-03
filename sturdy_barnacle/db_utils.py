@@ -222,13 +222,12 @@ class DatabaseManager:
         """Returns all images in an album."""
         session = self._get_session()
         try:
-            results = session.execute(
-                text(
-                    f"""SELECT image_path FROM {TABLES['image_album_mapping']}
-                    WHERE album_id = :album_id"""
-                ),
-                {"album_id": album_id},
-            )
+            table_name = TABLES.get("image_album_mapping")
+            if not table_name or not re.match(r"^[a-zA-Z0-9_]+$", table_name):
+                raise ValueError("Invalid table name detected!")
+    
+            query = text(f"SELECT image_path FROM {table_name} WHERE album_id = :album_id")
+            results = session.execute(query, {"album_id": album_id})
             return [row[0] for row in results]
         finally:
             session.close()
