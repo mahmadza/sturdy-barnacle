@@ -119,28 +119,16 @@ class DatabaseManager:
                 exif_data.get("DateTimeOriginal", None) if exif_data else None
             )
 
-            existing = (
-                session.query(ImageMetadata)
-                .filter_by(image_path=image_path)
-                .first()
-            )
-            if existing:
-                existing.description = description
-                existing.detected_objects = detected_objects
-                existing.exif_data = exif_data
-                if embedding:
-                    existing.embedding = embedding
-            else:
-                session.add(
-                    ImageMetadata(
-                        image_path=image_path,
-                        description=description,
-                        detected_objects=detected_objects,
-                        datetime=datetime,
-                        exif_data=exif_data,
-                        embedding=embedding,
-                    )
+            session.add(
+                ImageMetadata(
+                    image_path=image_path,
+                    description=description,
+                    detected_objects=detected_objects,
+                    datetime=datetime,
+                    exif_data=exif_data,
+                    embedding=embedding,
                 )
+            )
 
             session.commit()
         except Exception as e:
