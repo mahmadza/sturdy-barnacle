@@ -157,30 +157,35 @@ class DatabaseManager:
             session.close()
 
     def find_similar_images(
-        self, image_embedding: List[float], top_n: int = 5
+    self, image_embedding: List[float], top_n: int = 5
     ) -> List[Dict[str, Any]]:
+        
         """Find similar images using embedding similarity search (pgvector)."""
+
         session = self._get_session()
+        
         try:
-            embedding_str = (
-                f"'[{', '.join(map(str, image_embedding))}]'::vector"
-            )
             query = text(
                 f"""
-                SELECT image_path, 1 - (embedding <=> {embedding_str})
-                AS similarity
+                SELECT image_path, 1 - (embedding <=> :embedding) AS similarity
                 FROM {TABLES["image_metadata"]}
                 ORDER BY similarity DESC
                 LIMIT :top_n
-            """
+                """
             )
-            results = session.execute(query, {"top_n": top_n}).fetchall()
+    
+            results = session.execute(
+                query, {"embedding": image_embedding, "top_n": top_n}
+            ).fetchall()
+    
             return [
                 {"image_path": row[0], "similarity": row[1]} for row in results
             ]
+    
         finally:
             session.close()
 
+    
     def create_album(self, album_name: str) -> int:
         session = self._get_session()
         try:
