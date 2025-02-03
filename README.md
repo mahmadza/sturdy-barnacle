@@ -9,7 +9,6 @@
 - **Image Embedding & Similarity Search**: Uses CLIP embeddings to find similar images.
 - **Automatic Album Organization**: Groups similar images into albums using t-SNE & HDBSCAN.
 - **Auto-Naming & Tagging Albums**: Generates meaningful names and tags for albums.
-- **AI-Generated Summaries**: Provides a text summary of each album based on detected content.
 
 ## Installation
 
