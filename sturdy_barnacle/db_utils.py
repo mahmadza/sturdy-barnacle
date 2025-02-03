@@ -184,19 +184,20 @@ class DatabaseManager:
         """Find similar images using embedding similarity search (pgvector)."""
 
         session = self._get_session()
-
+        table_name = TABLES.get("image_metadata")
         try:
+            embedding_str = f"[{', '.join(map(str, image_embedding))}]"
             query = text(
                 f"""
-                SELECT image_path, 1 - (embedding <=> :embedding) AS similarity
-                FROM {TABLES["image_metadata"]}
-                ORDER BY similarity DESC
-                LIMIT :top_n
-                """
+            SELECT image_path, 1 - (embedding <=> :embedding) AS similarity
+            FROM {table_name}
+            ORDER BY similarity DESC
+            LIMIT :top_n
+        """
             )
 
             results = session.execute(
-                query, {"embedding": image_embedding, "top_n": top_n}
+                query, {"embedding": embedding_str, "top_n": top_n}
             ).fetchall()
 
             return [
@@ -209,16 +210,15 @@ class DatabaseManager:
     def create_album(self, album_name: str) -> int:
         session = self._get_session()
         try:
+            table_name = TABLES.get("image_albums")
             query = text(
-                """
-                    INSERT INTO :table_name (album_name)
-                    VALUES (:name) RETURNING id
-                """
+                f"""
+            INSERT INTO {table_name} (album_name)
+            VALUES (:name) RETURNING id
+            """
             )
-            result = session.execute(
-                query,
-                {"table_name": TABLES.get("image_albums"), "name": album_name},
-            )
+
+            result = session.execute(query, {"name": album_name})
             session.commit()
             return result.fetchone()[0]
         finally:
@@ -228,10 +228,10 @@ class DatabaseManager:
         """Links an image to an album."""
         session = self._get_session()
         try:
-
+            table_name = TABLES.get("image_album_mapping")
             query = text(
-                """
-                INSERT INTO :table_name (album_id, image_path)
+                f"""
+                INSERT INTO {table_name} (album_id, image_path)
                 VALUES (:album_id, :image_path)
                 ON CONFLICT (image_path)
                 DO UPDATE SET album_id = EXCLUDED.album_id;
@@ -240,7 +240,6 @@ class DatabaseManager:
             session.execute(
                 query,
                 {
-                    "table_name": TABLES.get("image_album_mapping"),
                     "album_id": album_id,
                     "image_path": image_path,
                 },
@@ -253,15 +252,14 @@ class DatabaseManager:
         """Returns all images in an album."""
         session = self._get_session()
         try:
-
+            table_name = TABLES.get("image_album_mapping")
             query = text(
-                """SELECT image_path FROM :table_name
+                f"""SELECT image_path FROM {table_name}
                 WHERE album_id = :album_id"""
             )
             results = session.execute(
                 query,
                 {
-                    "table_name": TABLES.get("image_album_mapping"),
                     "album_id": album_id,
                 },
             )
