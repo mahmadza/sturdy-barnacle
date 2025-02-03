@@ -203,18 +203,17 @@ class DatabaseManager:
         """Links an image to an album."""
         session = self._get_session()
         try:
-            session.execute(
-                text(
-                    f"""
-                    INSERT INTO {TABLES['image_album_mapping']}
-                    (album_id, image_path)
-                    VALUES (:album_id, :image_path)
-                    ON CONFLICT (image_path)
-                    DO UPDATE SET album_id = EXCLUDED.album_id;
-                """
-                ),
-                {"album_id": album_id, "image_path": image_path},
-            )
+            table_name = TABLES.get("image_album_mapping")
+            if not table_name or not re.match(r"^[a-zA-Z0-9_]+$", table_name):
+                raise ValueError("Invalid table name detected!")
+
+            query = text(f"""
+                INSERT INTO {table_name} (album_id, image_path)
+                VALUES (:album_id, :image_path)
+                ON CONFLICT (image_path)
+                DO UPDATE SET album_id = EXCLUDED.album_id;
+            """)
+            session.execute(query, {"album_id": album_id, "image_path": image_path})
             session.commit()
         finally:
             session.close()
