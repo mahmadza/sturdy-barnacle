@@ -1,15 +1,18 @@
+from pathlib import Path
+
 import hdbscan
 import numpy as np
 import pandas as pd
+import yaml
 from sklearn.manifold import TSNE
 from sqlalchemy import text
-import re
 
-from sturdy_barnacle.db_utils import DatabaseManager, TABLES
+from sturdy_barnacle.db_utils import TABLES, DatabaseManager
 
 CONFIG_PATH = Path(__file__).parent.parent / "config.yaml"
 with open(CONFIG_PATH, "r") as f:
     CONFIG = yaml.safe_load(f)
+
 
 class ImageAlbumManager:
     """Class to group images into albums using t-SNE + HDBSCAN."""
@@ -55,8 +58,7 @@ class ImageAlbumManager:
 
         labels = self.cluster_hdbscan(tsne_embeddings)
 
-        album_data = []  # List to store album details
-
+        album_data = []
         album_ids = {}
         unique_clusters = set(labels) - {-1}  # Ignore noise (-1)
 
@@ -65,7 +67,6 @@ class ImageAlbumManager:
             album_id = self.db.create_album(album_name)
             album_ids[cluster] = album_id
 
-        # Assign images to albums
         image_counts = {album_id: 0 for album_id in album_ids.values()}
 
         for i, img in enumerate(images):
@@ -73,7 +74,7 @@ class ImageAlbumManager:
             if cluster_label != -1:
                 album_id = album_ids[cluster_label]
                 self.db.add_image_to_album(album_id, img.image_path)
-                image_counts[album_id] += 1  # Count images per album
+                image_counts[album_id] += 1
 
         for album_id, num_images in image_counts.items():
             album_data.append(
@@ -97,19 +98,24 @@ class ImageAlbumManager:
         try:
             album_mapping_table = TABLES.get("image_album_mapping")
             albums_table = TABLES.get("image_albums")
-            
+
             if not album_mapping_table or not albums_table:
                 raise ValueError("Invalid table name detected!")
-            
+
             session.execute(
-                text(f"""
-                    TRUNCATE TABLE {album_mapping_table} RESTART IDENTITY CASCADE;
-                """)
+                text(
+                    f"""
+                    TRUNCATE TABLE {album_mapping_table}
+                    RESTART IDENTITY CASCADE;
+                """
+                )
             )
             session.execute(
-                text(f"""
+                text(
+                    f"""
                     TRUNCATE TABLE {albums_table} RESTART IDENTITY CASCADE;
-                """)
+                """
+                )
             )
             session.commit()
             print("Tables cleared. Ready for a new clustering experiment.")

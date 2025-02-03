@@ -1,11 +1,12 @@
 import json
 import re
 from collections import Counter
+from typing import List, Tuple
 
 from nltk.corpus import wordnet
 from sqlalchemy import text
 
-from sturdy_barnacle.db_utils import DatabaseManager
+from sturdy_barnacle.db_utils import TABLES, DatabaseManager
 
 
 class AutoAlbumManager:
@@ -14,7 +15,9 @@ class AutoAlbumManager:
     def __init__(self, db: DatabaseManager):
         self.db = db
 
-    def get_cluster_metadata(self, album_id: int):
+    def get_cluster_metadata(
+        self, album_id: int
+    ) -> Tuple[Counter, List, List]:
         """Fetch all images from an album and analyze metadata."""
         image_paths = self.db.get_album_images(album_id)
         metadata_list = [
@@ -35,7 +38,9 @@ class AutoAlbumManager:
 
         return detected_objects, descriptions, exif_locations
 
-    def extract_keywords_from_description(self, descriptions):
+    def extract_keywords_from_description(
+        self, descriptions: List[str]
+    ) -> List[str]:
         """Extracts meaningful keywords
         from descriptions and merges synonyms."""
         keywords = []
@@ -50,7 +55,7 @@ class AutoAlbumManager:
         )  # Get top 10 keywords
         return self.merge_synonyms([kw[0] for kw in keyword_counts])
 
-    def merge_synonyms(self, keywords):
+    def merge_synonyms(self, keywords: List[str]) -> List[str]:
         """Merges synonyms to avoid redundant tags."""
         synonym_map = {}
         for word in keywords:
@@ -67,7 +72,9 @@ class AutoAlbumManager:
 
         return list(set(synonym_map.values()))
 
-    def generate_album_name(self, detected_objects, descriptions):
+    def generate_album_name(
+        self, detected_objects: Counter, descriptions: List
+    ) -> str:
         """Generate an album name based on objects and descriptions."""
         if detected_objects:
             common_object = detected_objects.most_common(1)[0][0]
@@ -76,7 +83,12 @@ class AutoAlbumManager:
             return descriptions[0].split()[0] + " Memories"
         return "Untitled Album"
 
-    def generate_tags(self, detected_objects, descriptions, exif_locations):
+    def generate_tags(
+        self,
+        detected_objects: Counter,
+        descriptions: List,
+        exif_locations: List,
+    ) -> List[str]:
         """Generate a list of tags based on objects,
         descriptions, and locations with synonyms merged."""
         tags = list(detected_objects.keys())
@@ -84,11 +96,14 @@ class AutoAlbumManager:
         tags.extend(desc_keywords)
         if exif_locations:
             tags.append("Location-based")
-        return list(set(tags))  # Remove duplicates
+        return list(set(tags))
 
     def generate_album_summary(
-        self, detected_objects, descriptions, exif_locations
-    ):
+        self,
+        detected_objects: Counter,
+        descriptions: List,
+        exif_locations: List,
+    ) -> str:
         """Generate a simple album summary based on detected elements."""
         summary = f"This album contains images with objects \
             such as {', '.join(detected_objects.keys()[:5])}. "
@@ -101,14 +116,14 @@ class AutoAlbumManager:
                 locations: {', '.join(map(str, exif_locations))}."
         return summary.strip()
 
-    def auto_name_and_tag_albums(self):
+    def auto_name_and_tag_albums(self) -> None:
         """Process all albums and update their names, tags, and summaries."""
         session = self.db._get_session()
         try:
             album_ids = session.execute(text("SELECT id FROM image_albums"))
-            for album_id in album_ids:
+            for (album_id,) in album_ids:
                 detected_objects, descriptions, exif_locations = (
-                    self.get_cluster_metadata(album_id[0])
+                    self.get_cluster_metadata(album_id)
                 )
                 album_name = self.generate_album_name(
                     detected_objects, descriptions
@@ -125,20 +140,21 @@ class AutoAlbumManager:
                 session.execute(
                     text(
                         """
-                        UPDATE image_albums
+                        UPDATE :table_name
                         SET album_name = :name,
                         tags = :tags, summary = :summary
                         WHERE id = :album_id
                     """
                     ),
                     {
+                        "table_name": TABLES.get("image_albums"),
                         "name": album_name,
                         "tags": tags,
                         "summary": summary,
-                        "album_id": album_id[0],
+                        "album_id": album_id,
                     },
                 )
                 session.commit()
-            print("✅ Albums updated with basic summaries!")
+            print("Albums updated with basic summaries!")
         finally:
             session.close()

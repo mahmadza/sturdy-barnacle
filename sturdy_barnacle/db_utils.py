@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
@@ -11,12 +12,14 @@ from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 def validate_table_names(table_dict: dict) -> dict:
     """Ensures all table names are safe from SQL injection attacks."""
-    valid_pattern = re.compile(r"^[a-zA-Z0-9_]+$")  # Allow only letters, numbers, and underscores
-    
-    for key, table_name in table_dict.items():
+    valid_pattern = re.compile(
+        r"^[a-zA-Z0-9_]+$"
+    )  # Allow only letters, numbers, and underscores
+
+    for _, table_name in table_dict.items():
         if not valid_pattern.match(table_name):
             raise ValueError(f"Invalid table name detected: {table_name}")
-    
+
     print("All table names are validated and safe.")
     return table_dict
 
@@ -160,23 +163,28 @@ class DatabaseManager:
                 .filter(
                     (ImageMetadata.description.ilike(text(":keyword")))
                     | (ImageMetadata.detected_objects.ilike(text(":keyword")))
-                    | (ImageMetadata.exif_data.cast(Text).ilike(text(":keyword")))
+                    | (
+                        ImageMetadata.exif_data.cast(Text).ilike(
+                            text(":keyword")
+                        )
+                    )
                 )
                 .params(keyword=search_pattern)
-                .limit(50)  # Limit query results to prevent excessive data leaks
+                .limit(
+                    50
+                )  # Limit query results to prevent excessive data leaks
                 .all()
             )
         finally:
             session.close()
 
     def find_similar_images(
-    self, image_embedding: List[float], top_n: int = 5
+        self, image_embedding: List[float], top_n: int = 5
     ) -> List[Dict[str, Any]]:
-        
         """Find similar images using embedding similarity search (pgvector)."""
 
         session = self._get_session()
-        
+
         try:
             query = text(
                 f"""
@@ -186,27 +194,31 @@ class DatabaseManager:
                 LIMIT :top_n
                 """
             )
-    
+
             results = session.execute(
                 query, {"embedding": image_embedding, "top_n": top_n}
             ).fetchall()
-    
+
             return [
                 {"image_path": row[0], "similarity": row[1]} for row in results
             ]
-    
+
         finally:
             session.close()
 
-    
     def create_album(self, album_name: str) -> int:
         session = self._get_session()
         try:
-            query = text("""
-                    INSERT INTO image_albums (album_name)
+            query = text(
+                """
+                    INSERT INTO :table_name (album_name)
                     VALUES (:name) RETURNING id
-                """)
-            result = session.execute(query, {"name": album_name})
+                """
+            )
+            result = session.execute(
+                query,
+                {"table_name": TABLES.get("image_albums"), "name": album_name},
+            )
             session.commit()
             return result.fetchone()[0]
         finally:
@@ -216,17 +228,23 @@ class DatabaseManager:
         """Links an image to an album."""
         session = self._get_session()
         try:
-            table_name = TABLES.get("image_album_mapping")
-            if not table_name or not re.match(r"^[a-zA-Z0-9_]+$", table_name):
-                raise ValueError("Invalid table name detected!")
 
-            query = text(f"""
-                INSERT INTO {table_name} (album_id, image_path)
+            query = text(
+                """
+                INSERT INTO :table_name (album_id, image_path)
                 VALUES (:album_id, :image_path)
                 ON CONFLICT (image_path)
                 DO UPDATE SET album_id = EXCLUDED.album_id;
-            """)
-            session.execute(query, {"album_id": album_id, "image_path": image_path})
+            """
+            )
+            session.execute(
+                query,
+                {
+                    "table_name": TABLES.get("image_album_mapping"),
+                    "album_id": album_id,
+                    "image_path": image_path,
+                },
+            )
             session.commit()
         finally:
             session.close()
@@ -235,12 +253,18 @@ class DatabaseManager:
         """Returns all images in an album."""
         session = self._get_session()
         try:
-            table_name = TABLES.get("image_album_mapping")
-            if not table_name or not re.match(r"^[a-zA-Z0-9_]+$", table_name):
-                raise ValueError("Invalid table name detected!")
-    
-            query = text(f"SELECT image_path FROM {table_name} WHERE album_id = :album_id")
-            results = session.execute(query, {"album_id": album_id})
+
+            query = text(
+                """SELECT image_path FROM :table_name
+                WHERE album_id = :album_id"""
+            )
+            results = session.execute(
+                query,
+                {
+                    "table_name": TABLES.get("image_album_mapping"),
+                    "album_id": album_id,
+                },
+            )
             return [row[0] for row in results]
         finally:
             session.close()
