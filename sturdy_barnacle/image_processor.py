@@ -77,7 +77,6 @@ class ImageProcessor:
             cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
             cfg.MODEL.DEVICE = config["image_processing"]["default_device"]
 
-            cls._detectron_cfg = cfg
             cls._detectron_predictor = DefaultPredictor(cfg)
             cls._metadata = MetadataCatalog.get(cfg.DATASETS.TRAIN[0])
             cls._class_names: List[str] = cls._metadata.get(
