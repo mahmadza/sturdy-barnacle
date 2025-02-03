@@ -189,13 +189,11 @@ class DatabaseManager:
     def create_album(self, album_name: str) -> int:
         session = self._get_session()
         try:
-            result = session.execute(
-                text(
-                    f"""INSERT INTO {TABLES['image_albums']} (album_name)
-                    VALUES (:name) RETURNING id"""
-                ),
-                {"name": album_name},
-            )
+            query = text("""
+                    INSERT INTO image_albums (album_name)
+                    VALUES (:name) RETURNING id
+                """)
+            result = session.execute(query, {"name": album_name})
             session.commit()
             return result.fetchone()[0]
         finally:
