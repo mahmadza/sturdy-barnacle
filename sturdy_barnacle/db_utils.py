@@ -8,12 +8,25 @@ from PIL import ExifTags, Image, TiffImagePlugin
 from sqlalchemy import JSON, Column, Integer, String, Text, create_engine, text
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
+
+def validate_table_names(table_dict: dict) -> dict:
+    """Ensures all table names are safe from SQL injection attacks."""
+    valid_pattern = re.compile(r"^[a-zA-Z0-9_]+$")  # Allow only letters, numbers, and underscores
+    
+    for key, table_name in table_dict.items():
+        if not valid_pattern.match(table_name):
+            raise ValueError(f"Invalid table name detected: {table_name}")
+    
+    print("All table names are validated and safe.")
+    return table_dict
+
+
 CONFIG_PATH = Path(__file__).parent.parent / "config.yaml"
 with open(CONFIG_PATH, "r") as f:
     CONFIG = yaml.safe_load(f)
 
 DB_URL = CONFIG["database"]["db_url"]
-TABLES = CONFIG["database"]["table_names"]
+TABLES = validate_table_names(CONFIG["database"]["table_names"])
 
 engine = create_engine(DB_URL, pool_size=10, max_overflow=20)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
