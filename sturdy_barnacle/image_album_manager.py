@@ -3,9 +3,15 @@ import numpy as np
 import pandas as pd
 from sklearn.manifold import TSNE
 from sqlalchemy import text
+import re
 
 from sturdy_barnacle.db_utils import DatabaseManager
 
+CONFIG_PATH = Path(__file__).parent.parent / "config.yaml"
+with open(CONFIG_PATH, "r") as f:
+    CONFIG = yaml.safe_load(f)
+
+TABLES = CONFIG["database"]["table_names"]
 
 class ImageAlbumManager:
     """Class to group images into albums using t-SNE + HDBSCAN."""
@@ -91,14 +97,23 @@ class ImageAlbumManager:
         """Clears the album tables before re-clustering."""
         session = self.db._get_session()
         try:
+            album_mapping_table = TABLES.get("image_album_mapping")
+            albums_table = TABLES.get("image_albums")
+            
+            if not album_mapping_table or not albums_table or \
+               not re.match(r"^[a-zA-Z0-9_]+$", album_mapping_table) or \
+               not re.match(r"^[a-zA-Z0-9_]+$", albums_table):
+                raise ValueError("Invalid table name detected!")
+            
             session.execute(
-                text(
-                    """TRUNCATE TABLE image_album_mapping
-                    RESTART IDENTITY CASCADE;"""
-                )
+                text(f"""
+                    TRUNCATE TABLE {album_mapping_table} RESTART IDENTITY CASCADE;
+                """)
             )
             session.execute(
-                text("TRUNCATE TABLE image_albums RESTART IDENTITY CASCADE;")
+                text(f"""
+                    TRUNCATE TABLE {albums_table} RESTART IDENTITY CASCADE;
+                """)
             )
             session.commit()
             print("Tables cleared. Ready for a new clustering experiment.")
