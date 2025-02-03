@@ -5,13 +5,11 @@ from sklearn.manifold import TSNE
 from sqlalchemy import text
 import re
 
-from sturdy_barnacle.db_utils import DatabaseManager
+from sturdy_barnacle.db_utils import DatabaseManager, TABLES
 
 CONFIG_PATH = Path(__file__).parent.parent / "config.yaml"
 with open(CONFIG_PATH, "r") as f:
     CONFIG = yaml.safe_load(f)
-
-TABLES = CONFIG["database"]["table_names"]
 
 class ImageAlbumManager:
     """Class to group images into albums using t-SNE + HDBSCAN."""
@@ -100,9 +98,7 @@ class ImageAlbumManager:
             album_mapping_table = TABLES.get("image_album_mapping")
             albums_table = TABLES.get("image_albums")
             
-            if not album_mapping_table or not albums_table or \
-               not re.match(r"^[a-zA-Z0-9_]+$", album_mapping_table) or \
-               not re.match(r"^[a-zA-Z0-9_]+$", albums_table):
+            if not album_mapping_table or not albums_table:
                 raise ValueError("Invalid table name detected!")
             
             session.execute(
