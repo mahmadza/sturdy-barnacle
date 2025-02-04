@@ -16,7 +16,7 @@ CREATE TABLE image_album_mapping (
 
 
 # To get the number of images in each album, use the following query:
-SELECT 
+SELECT
     ia.id AS album_id,
     ia.album_name,
     COUNT(iam.image_path) AS num_images
@@ -24,3 +24,14 @@ FROM image_albums ia
 LEFT JOIN image_album_mapping iam ON ia.id = iam.album_id
 GROUP BY ia.id, ia.album_name
 ORDER BY num_images DESC;
+
+
+
+ALTER TABLE image_metadata ADD COLUMN ocr_text TEXT;
+ALTER TABLE image_metadata ADD COLUMN search_vector TSVECTOR;
+CREATE INDEX idx_search_vector ON image_metadata USING GIN(search_vector);
+CREATE INDEX idx_embedding ON image_metadata USING HNSW (embedding vector_l2_ops);
+SELECT * FROM pg_indexes WHERE tablename = 'image_metadata';
+
+
+CREATE INDEX IF NOT EXISTS idx_album ON image_album_mapping(album_id);

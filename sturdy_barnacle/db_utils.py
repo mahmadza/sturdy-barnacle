@@ -47,6 +47,8 @@ class ImageMetadata(Base):
     datetime = Column(String, nullable=True)
     exif_data = Column(JSON, nullable=True)
     embedding = Column(Vector(512))
+    ocr_text = Column(Text, nullable=True)
+    search_vector = Column(Text, nullable=True)  # Full-text search
 
 
 class DatabaseManager:
@@ -122,6 +124,8 @@ class DatabaseManager:
         description: Optional[str] = None,
         detected_objects: Optional[str] = None,
         embedding: Optional[List[float]] = None,
+        ocr_text: Optional[str] = None,
+        search_vector: Optional[str] = None,
     ) -> None:
         """Saves or updates image metadata in the database."""
         session = self._get_session()
@@ -143,6 +147,8 @@ class DatabaseManager:
                     datetime=datetime,
                     exif_data=exif_data,
                     embedding=embedding,
+                    ocr_text=ocr_text,
+                    search_vector=search_vector,
                 )
             )
 
