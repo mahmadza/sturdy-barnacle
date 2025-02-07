@@ -1,6 +1,6 @@
-# Sturdy Barnacle - AI-Powered Image Management System
+# Sturdy Barnacle - ML-Powered Image Management System
 
-**Sturdy Barnacle** is an advanced image management system that extracts metadata, detects objects, generates embeddings, and organizes images into albums using machine learning techniques.
+**Sturdy Barnacle** is an image management system that extracts metadata, detects objects, generates embeddings, and organizes images into albums using machine learning techniques.
 
 ## Features
 - **Image Metadata Extraction**: Extracts EXIF metadata from images.
@@ -26,15 +26,11 @@ python -c "from sturdy_barnacle.db_utils import DatabaseManager; DatabaseManager
 ```
 
 ### **4️⃣ Run Image Processing**
-To process an image and store its metadata:
-```sh
-python image_processor.py /path/to/image.jpg
-```
+Refer to examples in `notebooks/` directory.
 
 ### **5️⃣ Auto-Organize Albums**
-```sh
-python auto_album_manager.py
-```
+Refer to examples in `notebooks/` directory.
+
 
 ### **6️⃣ Run Tests**
 (to be added)
@@ -47,6 +43,7 @@ python auto_album_manager.py
 │   ├── image_album_manager.py # Clustering images into albums
 │   ├── auto_album_manager.py # Album naming, tagging, & summaries
 │   ├── image_visualizer.py   # Visualization of images & metadata
+├── notebooks                 # example notebooks
 ├── tests
 ├── requirements.txt          # Dependencies
 ├── config.yaml               # Configuration file
