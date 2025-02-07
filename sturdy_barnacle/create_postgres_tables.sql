@@ -26,12 +26,16 @@ GROUP BY ia.id, ia.album_name
 ORDER BY num_images DESC;
 
 
-
+# Add OCR text and search vector columns
 ALTER TABLE image_metadata ADD COLUMN ocr_text TEXT;
 ALTER TABLE image_metadata ADD COLUMN search_vector TSVECTOR;
+
+# Add indices
 CREATE INDEX idx_search_vector ON image_metadata USING GIN(search_vector);
 CREATE INDEX idx_embedding ON image_metadata USING HNSW (embedding vector_l2_ops);
+
+# Verify indices
 SELECT * FROM pg_indexes WHERE tablename = 'image_metadata';
 
-
+# Create index
 CREATE INDEX IF NOT EXISTS idx_album ON image_album_mapping(album_id);

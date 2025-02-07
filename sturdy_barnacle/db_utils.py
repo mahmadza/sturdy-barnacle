@@ -48,7 +48,7 @@ class ImageMetadata(Base):
     exif_data = Column(JSON, nullable=True)
     embedding = Column(Vector(512))
     ocr_text = Column(Text, nullable=True)
-    search_vector = Column(Text, nullable=True)  # Full-text search
+    search_vector = Column(Text, nullable=True)
 
 
 class DatabaseManager:
@@ -130,32 +130,51 @@ class DatabaseManager:
         """Saves or updates image metadata in the database."""
         session = self._get_session()
         try:
-            if self.is_image_processed(image_path):
-                print(f"Skipping {image_path} (already processed)")
-                return
 
             exif_data = self.extract_exif_data(image_path)
             datetime = (
                 exif_data.get("DateTimeOriginal", None) if exif_data else None
             )
 
-            session.add(
-                ImageMetadata(
-                    image_path=image_path,
-                    description=description,
-                    detected_objects=detected_objects,
-                    datetime=datetime,
-                    exif_data=exif_data,
-                    embedding=embedding,
-                    ocr_text=ocr_text,
-                    search_vector=search_vector,
-                )
+            existing_image = (
+                session.query(ImageMetadata)
+                .filter_by(image_path=image_path)
+                .first()
             )
 
+            update_fields = {
+                "description": description,
+                "detected_objects": detected_objects,
+                "exif_data": exif_data,
+                "datetime": datetime,
+                "embedding": embedding,
+                "ocr_text": ocr_text,
+                "search_vector": search_vector,
+            }
+
+            if existing_image:
+                for field, value in update_fields.items():
+                    if value is not None:
+                        setattr(existing_image, field, value)
+                print(f"Updated metadata for {image_path}")
+            else:
+
+                session.add(
+                    ImageMetadata(
+                        image_path=image_path,
+                        **{
+                            k: v
+                            for k, v in update_fields.items()
+                            if v is not None
+                        },
+                    )
+                )
+
             session.commit()
+
         except Exception as e:
             session.rollback()
-            print(f"Error saving image metadata: {e}")
+            print(f"Error saving/updating image metadata: {e}")
         finally:
             session.close()
 
@@ -290,5 +309,19 @@ class DatabaseManager:
                 .filter_by(image_path=image_path)
                 .first()
             )
+        finally:
+            session.close()
+
+    def delete_image_by_path(self, image_path: str) -> None:
+        session = self._get_session()
+        try:
+            session.query(ImageMetadata).filter_by(
+                image_path=image_path
+            ).delete()
+            print(f"Deleted metadata for {image_path}")
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            print(f"Error deleting image metadata: {e}")
         finally:
             session.close()

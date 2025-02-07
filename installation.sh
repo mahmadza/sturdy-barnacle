@@ -2,7 +2,7 @@
 
 cd ~/Documents/GitHub/sturdy-barnacle
 
-
+# Create virtual environment
 python3.11 -m venv myenv
 source myenv/bin/activate
 
@@ -18,12 +18,7 @@ pip install torch torchvision torchaudio
 
 python -m ipykernel install --user --name=venv
 
-pip install ipywidgets widgetsnbextension pandas-profiling
+pip install ipywidgets widgetsnbextension pandas-profiling opencv-python
 
 
 pip install "numpy<2" --force-reinstall
-
-
-pip install opencv-python
-
-

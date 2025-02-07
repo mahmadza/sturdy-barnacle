@@ -176,3 +176,4 @@ class ImageProcessor:
             detected_objects=detected_objects_str,
             embedding=embedding,
         )
+        # ocr text and search vector still missing
