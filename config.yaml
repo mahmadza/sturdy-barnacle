@@ -19,5 +19,4 @@ models:
     min_samples: 2
 
 image_processing:
-  default_device: "cpu"  # Change to "cpu" if no GPU available
-  image_directory: "/Users/mamduhzabidi/Pictures/Photos Library.photoslibrary/originals/"
+  default_device: "mps"  # Change to "cpu" if no GPU available
