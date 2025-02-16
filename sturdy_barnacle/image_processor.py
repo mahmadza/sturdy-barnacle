@@ -35,7 +35,7 @@ class ImageProcessor:
     def __init__(self, image_path: str, db: DatabaseManager) -> None:
         self.image_path: str = image_path
         self.db: DatabaseManager = db
-        self.device = config["image_processing"]["default_device"]
+        self.device = config["device"]["device"]
 
         self.skip_processing = self.db.is_image_processed(self.image_path)
 
@@ -62,7 +62,7 @@ class ImageProcessor:
             cls._blip_processor = Blip2Processor.from_pretrained(model_name)
             cls._blip_model = Blip2ForConditionalGeneration.from_pretrained(
                 model_name
-            ).to(config["image_processing"]["default_device"])
+            ).to(config["device"]["default_device"])
         except Exception as e:
             raise RuntimeError(f"Error initializing BLIP-2 model: {e}")
 
@@ -75,7 +75,7 @@ class ImageProcessor:
             cfg.merge_from_file(model_zoo.get_config_file(model_name))
             cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(model_name)
             cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
-            cfg.MODEL.DEVICE = config["image_processing"]["default_device"]
+            cfg.MODEL.DEVICE = config["device"]["default_device"]
 
             cls._detectron_predictor = DefaultPredictor(cfg)
             cls._metadata = MetadataCatalog.get(cfg.DATASETS.TRAIN[0])
@@ -92,7 +92,7 @@ class ImageProcessor:
             model_name = MODEL_NAMES["clip"]
             cls._clip_processor = CLIPProcessor.from_pretrained(model_name)
             cls._clip_model = CLIPModel.from_pretrained(model_name).to(
-                config["image_processing"]["default_device"]
+                config["device"]["default_device"]
             )
         except Exception as e:
             raise RuntimeError(f"Error initializing CLIP model: {e}")
