@@ -1,41 +1,40 @@
 
-# Create the tables for the image album application
-# The image_albums table will store the album names
-CREATE TABLE image_albums (
+CREATE DATABASE images_db;
+
+\c images_db;
+
+CREATE EXTENSION vector;
+
+CREATE TABLE IF NOT EXISTS image_metadata (
     id SERIAL PRIMARY KEY,
-    album_name TEXT UNIQUE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    image_path TEXT UNIQUE NOT NULL,
+    description TEXT,
+    detected_objects TEXT,
+    datetime TEXT,
+    embedding VECTOR(512),
+    ocr_text TEXT
 );
 
-# The image_album_mapping table will store the mapping between albums and images
-CREATE TABLE image_album_mapping (
+CREATE TABLE IF NOT EXISTS image_albums (
     id SERIAL PRIMARY KEY,
+    album_name TEXT UNIQUE NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS image_album_mapping (
     album_id INTEGER REFERENCES image_albums(id) ON DELETE CASCADE,
-    image_path TEXT UNIQUE NOT NULL
+    image_path TEXT REFERENCES image_metadata(image_path) ON DELETE CASCADE,
+    PRIMARY KEY (album_id, image_path)
 );
 
 
-# To get the number of images in each album, use the following query:
-SELECT
-    ia.id AS album_id,
-    ia.album_name,
-    COUNT(iam.image_path) AS num_images
-FROM image_albums ia
-LEFT JOIN image_album_mapping iam ON ia.id = iam.album_id
-GROUP BY ia.id, ia.album_name
-ORDER BY num_images DESC;
+GRANT CONNECT ON DATABASE images_db TO myuser;
+GRANT USAGE ON SCHEMA public TO myuser;
+
+GRANT USAGE, SELECT, UPDATE ON SEQUENCE public.image_metadata_id_seq TO myuser;
 
 
-# Add OCR text and search vector columns
-ALTER TABLE image_metadata ADD COLUMN ocr_text TEXT;
-ALTER TABLE image_metadata ADD COLUMN search_vector TSVECTOR;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO myuser;
 
-# Add indices
-CREATE INDEX idx_search_vector ON image_metadata USING GIN(search_vector);
-CREATE INDEX idx_embedding ON image_metadata USING HNSW (embedding vector_l2_ops);
-
-# Verify indices
-SELECT * FROM pg_indexes WHERE tablename = 'image_metadata';
-
-# Create index
-CREATE INDEX IF NOT EXISTS idx_album ON image_album_mapping(album_id);
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO myuser;

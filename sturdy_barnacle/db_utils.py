@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 import yaml
 from pgvector.sqlalchemy import Vector
 from PIL import ExifTags, Image, TiffImagePlugin
-from sqlalchemy import JSON, Column, Integer, String, Text, create_engine, text
+from sqlalchemy import Column, Integer, String, Text, create_engine, text
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 
@@ -45,10 +45,8 @@ class ImageMetadata(Base):
     description = Column(Text, nullable=True)
     detected_objects = Column(Text, nullable=True)
     datetime = Column(String, nullable=True)
-    exif_data = Column(JSON, nullable=True)
     embedding = Column(Vector(512))
     ocr_text = Column(Text, nullable=True)
-    search_vector = Column(Text, nullable=True)
 
 
 class DatabaseManager:
@@ -125,12 +123,10 @@ class DatabaseManager:
         detected_objects: Optional[str] = None,
         embedding: Optional[List[float]] = None,
         ocr_text: Optional[str] = None,
-        search_vector: Optional[str] = None,
     ) -> None:
         """Saves or updates image metadata in the database."""
         session = self._get_session()
         try:
-
             exif_data = self.extract_exif_data(image_path)
             datetime = (
                 exif_data.get("DateTimeOriginal", None) if exif_data else None
@@ -145,11 +141,9 @@ class DatabaseManager:
             update_fields = {
                 "description": description,
                 "detected_objects": detected_objects,
-                "exif_data": exif_data,
                 "datetime": datetime,
                 "embedding": embedding,
                 "ocr_text": ocr_text,
-                "search_vector": search_vector,
             }
 
             if existing_image:
@@ -188,11 +182,7 @@ class DatabaseManager:
                 .filter(
                     (ImageMetadata.description.ilike(text(":keyword")))
                     | (ImageMetadata.detected_objects.ilike(text(":keyword")))
-                    | (
-                        ImageMetadata.exif_data.cast(Text).ilike(
-                            text(":keyword")
-                        )
-                    )
+                    | (ImageMetadata.ocr_text.ilike(text(":keyword")))
                 )
                 .params(keyword=search_pattern)
                 .limit(
