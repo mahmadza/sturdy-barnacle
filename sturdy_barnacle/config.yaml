@@ -1,0 +1,28 @@
+# Database Configuration
+database:
+  db_url: "postgresql://myuser:mypassword@localhost:5432/images_db"
+  db_name: "images_db"
+  table_names:
+    image_metadata: "image_metadata"
+    image_albums: "image_albums"
+    image_album_mapping: "image_album_mapping"
+
+# Model Paths and Hyperparameters
+models:
+  blip: "Salesforce/blip2-opt-2.7b"  # Image captioning model
+  detectron: "COCO-PanopticSegmentation/panoptic_fpn_R_50_3x.yaml"  # Object detection model
+  clip: "openai/clip-vit-base-patch32"  # Image embedding model
+
+  # Clustering Settings
+  tsne:
+    n_components: 2
+    perplexity: 30.0
+
+  hdbscan:
+    min_cluster_size: 10
+    min_samples: 2
+
+# Device Configuration
+device:
+  # Supported options: "cuda", "mps", "cpu"
+  default_device: "mps"

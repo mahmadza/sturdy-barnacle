@@ -13,6 +13,7 @@ class ImageVisualizer:
         self.db = db
 
     def display_image(self, image_path: str) -> None:
+        """Display an image using matplotlib."""
         try:
             img = Image.open(image_path)
             plt.imshow(img)
@@ -22,23 +23,27 @@ class ImageVisualizer:
             print(f"Error displaying image {image_path}: {e}")
 
     def visualize_image_metadata(self, image_path: str) -> None:
+        """Fetch and display image metadata along with the image itself."""
+        metadata = self.db.get_image_by_path(image_path)
 
-        img_metadata = self.db.get_image_by_path(image_path)
-        if not img_metadata:
+        if not metadata:
             print(f"No metadata found for image: {image_path}")
             return
 
-        print(f"Image Path: {img_metadata.image_path}")
+        print("=" * 50)
+        print(f"📸 Image Path: {metadata.image_path}")
 
-        self.display_image(img_metadata.image_path)
+        self.display_image(metadata.image_path)
 
         detected_objects = (
-            json.loads(img_metadata.detected_objects)
-            if img_metadata.detected_objects
+            json.loads(metadata.detected_objects)
+            if metadata.detected_objects
             else {}
         )
-        print(f"Detected Objects: {detected_objects}")
-        print(f"Caption: {img_metadata.description or 'No caption available'}")
-        print(f"OCR Text: {img_metadata.ocr_text or 'No text detected'}")
-        print(f"Date Taken: {img_metadata.datetime or 'Unknown'}")
-        print("-" * 50)
+
+        print("📝 Metadata Summary")
+        print(f"- Detected Objects: {detected_objects}")
+        print(f"- Caption: {metadata.description or 'No caption available'}")
+        print(f"- OCR Text: {metadata.ocr_text or 'No text detected'}")
+        print(f"- Date Taken: {metadata.datetime or 'Unknown'}")
+        print("=" * 50)
